@@ -1,5 +1,5 @@
 data:
-  data_location: speech_data
+  data_location: Synth
   extension: "wav"
 
 preprocess:

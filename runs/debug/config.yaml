@@ -1,0 +1,30 @@
+data:
+  data_location: speech_data
+  extension: wav
+  mean_loudness: -9.30744800567627
+  std_loudness: 6.4370087623596195
+hyperparams:
+  batch_size: 16
+model:
+  block_size: 160
+  device: cuda:0
+  hidden_size: 512
+  n_bands: 65
+  n_fft: 2048
+  n_harmonic: 100
+  sample_rate: 16000
+preprocess:
+  block_size: 160
+  oneshot: false
+  out_dir: ./preprocessed/
+  sample_rate: 16000
+  signal_length: 64000
+train:
+  overlap: 0.75
+  scales:
+  - 4096
+  - 2048
+  - 1024
+  - 512
+  - 256
+  - 128
