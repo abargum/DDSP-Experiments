@@ -157,7 +157,8 @@ class Torch_MFCC_Extractor(torch.nn.Module):
         self.mfcc = torchaudio.transforms.MFCC(sample_rate=sample_rate,
                                             n_mfcc=30,
                                             log_mels=True,
-                                            melkwargs={"n_fft": self.n_fft, "hop_length": self.block_size, "center": True}
+                                            melkwargs={"n_fft": self.n_fft, "hop_length": self.block_size, 
+                                            "center": True, "f_min": 20.0, "f_max": 8000.0,}
                                             ).to(self.device)
 
     def forward(self, sig):

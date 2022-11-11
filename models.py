@@ -91,24 +91,26 @@ class Decoder(nn.Module):
         return param_harmonic, param_noise
 
 class Latent_Z(nn.Module):
-    def __init__(self, sample_rate, block_size, hidden_size, n_fft, device):
+    def __init__(self, sample_rate, block_size, hidden_size, n_fft, num_mfccs, z_dim, device):
         super().__init__()
         self.z_vector = Torch_MFCC_Extractor(n_fft, sample_rate, block_size, device)
-        self.gru = nn.GRU(30, hidden_size, batch_first=True)
-        self.dense_z = nn.Linear(hidden_size, 16)
+        self.norm_layer = nn.InstanceNorm1d(num_mfccs)
+        self.gru = nn.GRU(num_mfccs, hidden_size, batch_first=True)
+        self.dense_z = nn.Linear(hidden_size, z_dim)
 
     def forward(self, signal):
-        mfccs = self.z_vector(signal).permute(0, 2, 1)
+        mfccs = self.z_vector(signal)
+        mfccs = self.norm_layer(mfccs).permute(0, 2, 1)
         gru_out = self.gru(mfccs)
         latent_z = self.dense_z(gru_out[0])
         return latent_z
 
 class Decoder_with_Z(nn.Module):
-    def __init__(self, sample_rate, block_size, hidden_size, n_bands, n_harmonic):
+    def __init__(self, hidden_size, n_bands, n_harmonic, z_dim):
         super().__init__()
 
         self.in_mlps = nn.ModuleList([mlp(1, hidden_size, 3)] * 2)
-        self.in_mlp_z = nn.Linear(16, hidden_size)
+        self.in_mlp_z = nn.Linear(z_dim, hidden_size)
         self.gru = gru(3, hidden_size)
         self.out_mlp = mlp(hidden_size + 2, hidden_size, 3)
 
@@ -186,13 +188,13 @@ class DDSP_signal_only(nn.Module):
 
 class DDSP_with_features(nn.Module):
     def __init__(self, hidden_size, n_harmonic, n_bands, sample_rate,
-                 block_size, n_fft, device):
+                 block_size, n_fft, num_mfccs, z_dim, device):
         super().__init__()
         self.register_buffer("sample_rate", torch.tensor(sample_rate))
         self.register_buffer("block_size", torch.tensor(block_size))
 
-        self.latent_z = Latent_Z(sample_rate, block_size, hidden_size, n_fft, device)
-        self.decoder = Decoder_with_Z(sample_rate, block_size, hidden_size, n_bands, n_harmonic)
+        self.latent_z = Latent_Z(sample_rate, block_size, hidden_size, n_fft, num_mfccs, z_dim, device)
+        self.decoder = Decoder_with_Z(hidden_size, n_bands, n_harmonic, z_dim)
 
         self.reverb = Reverb(sample_rate, sample_rate)
 

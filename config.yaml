@@ -17,6 +17,8 @@ model:
   sample_rate: *samplerate
   block_size: *blocksize
   n_fft: 2048
+  num_mfccs: 30
+  z_dim: 16
   device: cpu
 
 train:
