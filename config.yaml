@@ -17,7 +17,7 @@ model:
   sample_rate: *samplerate
   block_size: *blocksize
   n_fft: 2048
-  device: cuda:0
+  device: cpu
 
 train:
   scales: [4096, 2048, 1024, 512, 256, 128]

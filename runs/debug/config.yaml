@@ -1,13 +1,13 @@
 data:
-  data_location: speech_data
+  data_location: Synth
   extension: wav
-  mean_loudness: -9.30744800567627
-  std_loudness: 6.4370087623596195
+  mean_loudness: -9.294073486328125
+  std_loudness: 6.38057165145874
 hyperparams:
   batch_size: 16
 model:
   block_size: 160
-  device: cuda:0
+  device: cpu
   hidden_size: 512
   n_bands: 65
   n_fft: 2048

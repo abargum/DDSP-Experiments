@@ -3,6 +3,7 @@ import numpy as np
 import librosa
 import torch
 import torchcrepe
+import torchaudio
 
 class Pitch_Extractor(torch.nn.Module):
     def __init__(self, sample_rate, block_size, threshold=0.25):
@@ -32,6 +33,33 @@ class Pitch_Extractor(torch.nn.Module):
             f0 = torch.tensor(f0[:-1]).to(sig)
 
         return f0
+
+class Loudness_Extractor(torch.nn.Module):
+    def __init__(self, n_fft, sample_rate, block_size, device='cpu'):
+        super().__init__()
+        self.n_fft = n_fft
+        self.sample_rate = sample_rate
+        self.block_size = block_size
+        self.device = device
+
+    def forward(self, sig):
+        S = librosa.stft(
+                    sig.numpy(),
+                    n_fft=self.n_fft,
+                    hop_length=self.block_size,
+                    win_length=self.n_fft,
+                    center=True
+                    )
+                     
+        S = np.log(abs(S) + 1e-7)
+        f = librosa.fft_frequencies(self.sample_rate, self.n_fft)
+        a_weight = librosa.A_weighting(f)
+        S = torch.tensor(S + a_weight.reshape(-1, 1), device=self.device)
+        S = torch.mean(S, 1)[..., :-1]
+
+        return S
+
+# ----------------------------------------------------------------------------------------------
 
 #Only support sample rate of 16000Hz and fmax at 2006Hz (therefore better with speech)
 class Torch_Pitch_Extractor(torch.nn.Module):
@@ -118,27 +146,21 @@ class Torch_Loudness_Extractor(torch.nn.Module):
 
         return S
 
-class Loudness_Extractor(torch.nn.Module):
-    def __init__(self, n_fft, sample_rate, block_size, device='cpu'):
+class Torch_MFCC_Extractor(torch.nn.Module):
+    def __init__(self, n_fft, sample_rate, block_size, device):
         super().__init__()
         self.n_fft = n_fft
         self.sample_rate = sample_rate
         self.block_size = block_size
         self.device = device
 
-    def forward(self, sig):
-        S = librosa.stft(
-                    sig.numpy(),
-                    n_fft=self.n_fft,
-                    hop_length=self.block_size,
-                    win_length=self.n_fft,
-                    center=True
-                    )
-                     
-        S = np.log(abs(S) + 1e-7)
-        f = librosa.fft_frequencies(self.sample_rate, self.n_fft)
-        a_weight = librosa.A_weighting(f)
-        S = torch.tensor(S + a_weight.reshape(-1, 1), device=self.device)
-        S = torch.mean(S, 1)[..., :-1]
+        self.mfcc = torchaudio.transforms.MFCC(sample_rate=sample_rate,
+                                            n_mfcc=30,
+                                            log_mels=True,
+                                            melkwargs={"n_fft": self.n_fft, "hop_length": self.block_size, "center": True}
+                                            ).to(self.device)
 
-        return S
+    def forward(self, sig):
+        length = sig.shape[-1] // self.block_size
+        mfccs = self.mfcc(sig)
+        return mfccs[:, :, :length]

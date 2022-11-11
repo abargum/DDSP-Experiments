@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from core import harmonic_synth, amp_to_impulse_response, fft_convolve
 from core import mlp, gru, scale_function, remove_above_nyquist, upsample
-from encoders import Torch_Pitch_Extractor, Torch_Loudness_Extractor
+from encoders import Torch_Pitch_Extractor, Torch_Loudness_Extractor, Torch_MFCC_Extractor
 
 class Reverb(nn.Module):
     def __init__(self, length, sample_rate, initial_wet=0, initial_decay=5):
@@ -90,6 +90,47 @@ class Decoder(nn.Module):
 
         return param_harmonic, param_noise
 
+class Latent_Z(nn.Module):
+    def __init__(self, sample_rate, block_size, hidden_size, n_fft, device):
+        super().__init__()
+        self.z_vector = Torch_MFCC_Extractor(n_fft, sample_rate, block_size, device)
+        self.gru = nn.GRU(30, hidden_size, batch_first=True)
+        self.dense_z = nn.Linear(hidden_size, 16)
+
+    def forward(self, signal):
+        mfccs = self.z_vector(signal).permute(0, 2, 1)
+        gru_out = self.gru(mfccs)
+        latent_z = self.dense_z(gru_out[0])
+        return latent_z
+
+class Decoder_with_Z(nn.Module):
+    def __init__(self, sample_rate, block_size, hidden_size, n_bands, n_harmonic):
+        super().__init__()
+
+        self.in_mlps = nn.ModuleList([mlp(1, hidden_size, 3)] * 2)
+        self.in_mlp_z = nn.Linear(16, hidden_size)
+        self.gru = gru(3, hidden_size)
+        self.out_mlp = mlp(hidden_size + 2, hidden_size, 3)
+
+        self.output_to_harmonic = nn.Linear(hidden_size, n_harmonic + 1)
+        self.output_to_noise = nn.Linear(hidden_size, n_bands)
+
+    def forward(self, pitch, loudness, latent_z):
+
+        hidden = torch.cat([
+            self.in_mlps[0](pitch),
+            self.in_mlps[1](loudness),
+            self.in_mlp_z(latent_z),
+        ], -1)
+
+        hidden = torch.cat([self.gru(hidden)[0], pitch, loudness], -1)
+        hidden = self.out_mlp(hidden)
+
+        param_harmonic = scale_function(self.output_to_harmonic(hidden))
+        param_noise = scale_function(self.output_to_noise(hidden) - 5)
+
+        return param_harmonic, param_noise
+
 class DDSP_signal_only(nn.Module):
     def __init__(self, hidden_size, n_harmonic, n_bands, sample_rate,
                  block_size, n_fft, device):
@@ -150,16 +191,18 @@ class DDSP_with_features(nn.Module):
         self.register_buffer("sample_rate", torch.tensor(sample_rate))
         self.register_buffer("block_size", torch.tensor(block_size))
 
-        self.decoder = Decoder(sample_rate, block_size, hidden_size, n_bands, n_harmonic)
+        self.latent_z = Latent_Z(sample_rate, block_size, hidden_size, n_fft, device)
+        self.decoder = Decoder_with_Z(sample_rate, block_size, hidden_size, n_bands, n_harmonic)
 
         self.reverb = Reverb(sample_rate, sample_rate)
 
         self.register_buffer("cache_gru", torch.zeros(1, 1, hidden_size))
         self.register_buffer("phase", torch.zeros(1))
 
-    def forward(self, pitch, loudness):
-
-        param_harmonic, param_noise = self.decoder(pitch, loudness)
+    def forward(self, signal, pitch, loudness):
+        
+        latent_z = self.latent_z(signal)
+        param_harmonic, param_noise = self.decoder(pitch, loudness, latent_z)
 
         total_amp = param_harmonic[..., :1]
         amplitudes = param_harmonic[..., 1:]
