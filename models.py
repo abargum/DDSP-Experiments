@@ -7,7 +7,7 @@ from core import mlp, gru, scale_function, remove_above_nyquist, upsample
 from encoders import Torch_Pitch_Extractor, Torch_Loudness_Extractor, Torch_MFCC_Extractor
 
 class Reverb(nn.Module):
-    def __init__(self, length, sample_rate, initial_wet=0, initial_decay=5):
+    def __init__(self, length, sample_rate, initial_wet=0, initial_decay=2.5):
         super().__init__()
         self.length = length
         self.sample_rate = sample_rate
@@ -93,8 +93,8 @@ class Decoder(nn.Module):
 class Latent_Z(nn.Module):
     def __init__(self, sample_rate, block_size, hidden_size, n_fft, num_mfccs, z_dim, device):
         super().__init__()
-        self.z_vector = Torch_MFCC_Extractor(n_fft, sample_rate, block_size, device)
-        self.norm_layer = nn.InstanceNorm1d(num_mfccs)
+        self.z_vector = Torch_MFCC_Extractor(1024, sample_rate, block_size, device)
+        self.norm_layer = nn.InstanceNorm1d(num_mfccs, affine=True)
         self.gru = nn.GRU(num_mfccs, hidden_size, batch_first=True)
         self.dense_z = nn.Linear(hidden_size, z_dim)
 
@@ -103,6 +103,7 @@ class Latent_Z(nn.Module):
         mfccs = self.norm_layer(mfccs).permute(0, 2, 1)
         gru_out = self.gru(mfccs)
         latent_z = self.dense_z(gru_out[0])
+        latent_z = upsample(latent_z, 1)
         return latent_z
 
 class Decoder_with_Z(nn.Module):
@@ -110,7 +111,7 @@ class Decoder_with_Z(nn.Module):
         super().__init__()
 
         self.in_mlps = nn.ModuleList([mlp(1, hidden_size, 3)] * 2)
-        self.in_mlp_z = nn.Linear(z_dim, hidden_size)
+        self.in_mlp_z = mlp(z_dim, hidden_size, 3)
         self.gru = gru(3, hidden_size)
         self.out_mlp = mlp(hidden_size + 2, hidden_size, 3)
 

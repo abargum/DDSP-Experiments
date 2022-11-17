@@ -59,7 +59,7 @@ def resample(x, factor: int):
 
 def upsample(signal, factor):
     signal = signal.permute(0, 2, 1)
-    signal = nn.functional.interpolate(signal, size=signal.shape[-1] * factor)
+    signal = nn.functional.interpolate(signal, size=int(signal.shape[-1] * factor))
     return signal.permute(0, 2, 1)
 
 
@@ -80,7 +80,7 @@ def mlp(in_size, hidden_size, n_layers):
     for i in range(n_layers):
         net.append(nn.Linear(channels[i], channels[i + 1]))
         net.append(nn.LayerNorm(channels[i + 1]))
-        net.append(nn.LeakyReLU())
+        net.append(nn.ReLU())
     return nn.Sequential(*net)
 
 

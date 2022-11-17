@@ -61,6 +61,7 @@ def preprocess(f, sample_rate, block_size, signal_length, oneshot, **kwargs):
         x = x[..., :signal_length]
 
     pitch = extract_pitch(x, sample_rate, block_size)
+    print(pitch.shape)
     loudness = extract_loudness(x, sample_rate, block_size)
 
     x = x.reshape(-1, signal_length)
@@ -69,10 +70,9 @@ def preprocess(f, sample_rate, block_size, signal_length, oneshot, **kwargs):
 
     return x, pitch, loudness
 
-def get_files():
+def get_files(config_path):
     class args(Config):
-        CONFIG = "config.yaml"
-
+        CONFIG = config_path
     args.parse_args("")
     with open(args.CONFIG, "r") as config:
         config = yaml.safe_load(config)
