@@ -1,0 +1,32 @@
+data:
+  data_location: audio-files/training-data/male-speech
+  extension: wav
+  mean_loudness: -5.932851534623366
+  std_loudness: 5.146909952163696
+hyperparams:
+  batch_size: 16
+model:
+  block_size: 160
+  device: cpu
+  hidden_size: 512
+  n_bands: 65
+  n_fft: 2048
+  n_harmonic: 100
+  num_mfccs: 30
+  sample_rate: 16000
+  z_dim: 16
+preprocess:
+  block_size: 160
+  oneshot: false
+  out_dir: ./preprocessed/
+  sample_rate: 16000
+  signal_length: 64000
+train:
+  overlap: 0.75
+  scales:
+  - 4096
+  - 2048
+  - 1024
+  - 512
+  - 256
+  - 128

@@ -1,5 +1,5 @@
 data:
-  data_location: audio-files/training-data/female-speech
+  data_location: audio-files/training-data/male-speech
   extension: "wav"
 
 preprocess:
@@ -8,7 +8,7 @@ preprocess:
   block_size: &blocksize 160 # must be a power of 2 if using realtime
 
   oneshot: false # crop every audio file to exactly signal length
-  out_dir: ./preprocessed_embeddings/
+  out_dir: ./preprocessed/
 
 model:
   hidden_size: 512
