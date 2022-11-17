@@ -103,7 +103,7 @@ class Latent_Z(nn.Module):
         mfccs = self.norm_layer(mfccs).permute(0, 2, 1)
         gru_out = self.gru(mfccs)
         latent_z = self.dense_z(gru_out[0])
-        latent_z = upsample(latent_z, 1.6)
+        latent_z = upsample(latent_z, 1)
         return latent_z
 
 class Decoder_with_Z(nn.Module):
