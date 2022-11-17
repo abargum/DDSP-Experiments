@@ -1,8 +1,8 @@
 data:
   data_location: Synth
   extension: wav
-  mean_loudness: -9.210089874267577
-  std_loudness: 6.398231124877929
+  mean_loudness: -9.271479415893555
+  std_loudness: 6.376878070831299
 hyperparams:
   batch_size: 16
 model:
