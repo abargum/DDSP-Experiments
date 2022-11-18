@@ -1,8 +1,8 @@
 data:
   data_location: audio-files/training-data/male-speech
   extension: wav
-  mean_loudness: -5.932851534623366
-  std_loudness: 5.146909952163696
+  mean_loudness: -5.850945362677941
+  std_loudness: 5.043801050919753
 hyperparams:
   batch_size: 16
 model:
@@ -18,7 +18,7 @@ model:
 preprocess:
   block_size: 160
   oneshot: false
-  out_dir: ./preprocessed/
+  out_dir: ./preprocessed_embeddings/
   sample_rate: 16000
   signal_length: 64000
 train:

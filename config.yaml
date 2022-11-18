@@ -1,5 +1,5 @@
 data:
-  data_location: audio-files/training-data/female-speech
+  data_location: audio-files/training-data/male-speech
   extension: "wav"
 
 preprocess:
